@@ -103,33 +103,34 @@ final class VB_SG_Sitemaps {
      * @return void
      */
     public static function maybe_render(): void {
-        $type = get_query_var( self::QV_NAME );
-        $type = is_string( $type ) ? $type : '';
-
-        if ( '' === $type ) {
-            return;
-        }
-
-        nocache_headers();
-        header( 'Content-Type: application/xml; charset=UTF-8' );
-
-        if ( 'index' === $type ) {
-            echo self::render_index();
-            exit;
-        }
-
-        if ( 0 === strpos( $type, 'main-' ) ) {
-            $n = (int) substr( $type, 5 );
-            if ( $n < 1 ) {
-                $n = 1;
-            }
-            echo self::render_main_shard( $n );
-            exit;
-        }
-
-        status_header( 404 );
-        exit;
-    }
+		$type = get_query_var( self::QV_NAME );
+		$type = is_string( $type ) ? $type : '';
+	
+		if ( '' === $type ) {
+			return;
+		}
+	
+		nocache_headers();
+		header( 'Content-Type: application/xml; charset=UTF-8' );
+	
+		if ( 'index' === $type ) {
+			echo self::render_index(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is escaped during generation.
+			exit;
+		}
+	
+		if ( 0 === strpos( $type, 'main-' ) ) {
+			$n = (int) substr( $type, 5 );
+			if ( $n < 1 ) {
+				$n = 1;
+			}
+	
+			echo self::render_main_shard( $n ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is escaped during generation.
+			exit;
+		}
+	
+		status_header( 404 );
+		exit;
+	}
 
     /**
      * Purge all sitemap caches.
@@ -157,7 +158,7 @@ final class VB_SG_Sitemaps {
             return $cached;
         }
 
-        $count = self::estimate_total_url_count();
+        $count  = self::estimate_total_url_count();
         $shards = (int) ceil( max( 1, $count ) / self::MAX_URLS_PER_FILE );
         $shards = max( 1, $shards );
 
@@ -182,8 +183,7 @@ final class VB_SG_Sitemaps {
      * @return string
      */
     private static function sitemap_index_item( string $loc ): string {
-        $loc = esc_url( $loc );
-        return "\t<sitemap>\n\t\t<loc>{$loc}</loc>\n\t</sitemap>\n";
+        return "\t<sitemap>\n\t\t<loc>" . esc_url( $loc ) . "</loc>\n\t</sitemap>\n";
     }
 
     /**
@@ -210,22 +210,22 @@ final class VB_SG_Sitemaps {
         $xml .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
 
         foreach ( $rows as $row ) {
-            $loc     = esc_url( (string) $row['loc'] );
-            $lastmod = (string) $row['lastmod'];
-
-            if ( '' === $loc ) {
-                continue;
-            }
-
-            $xml .= "\t<url>\n";
-            $xml .= "\t\t<loc>{$loc}</loc>\n";
-
-            if ( '' !== $lastmod ) {
-                $xml .= "\t\t<lastmod>" . esc_html( $lastmod ) . "</lastmod>\n";
-            }
-
-            $xml .= "\t</url>\n";
-        }
+			$loc     = (string) ( $row['loc'] ?? '' );
+			$lastmod = (string) ( $row['lastmod'] ?? '' );
+		
+			if ( '' === $loc ) {
+				continue;
+			}
+		
+			$xml .= "\t<url>\n";
+			$xml .= "\t\t<loc>" . esc_url( $loc ) . "</loc>\n";
+		
+			if ( '' !== $lastmod ) {
+				$xml .= "\t\t<lastmod>" . esc_html( $lastmod ) . "</lastmod>\n";
+			}
+		
+			$xml .= "\t</url>\n";
+		}		
 
         $xml .= "</urlset>\n";
 
