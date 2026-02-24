@@ -1,14 +1,11 @@
 <?php
 /**
- * Core sitemap routing and rendering (Stage 1).
+ * Core sitemap routing and rendering (Stage 1 + Stage 2 Images).
  *
  * Provides:
- * - /sitemap.xml              (index)
- * - /sitemap-main-1.xml ...   (sharded URL sitemaps)
- *
- * Notes:
- * - Images and video are added in later stages.
- * - Dynamic output + transients cache.
+ * - /sitemap.xml                (index)
+ * - /sitemap-main-1.xml ...     (sharded main sitemap)
+ * - /sitemap-images-1.xml ...   (sharded images sitemap)
  *
  * @package    VB_Sitemap_Generator
  * @since      1.0.0
@@ -26,12 +23,12 @@ final class VB_SG_Sitemaps {
 
     private const CACHE_TTL = 6 * HOUR_IN_SECONDS;
 
-    private const TRANSIENT_INDEX_PREFIX = 'vb_sg_index_v1_';
-    private const TRANSIENT_MAIN_PREFIX  = 'vb_sg_main_v1_';
+    private const TRANSIENT_INDEX_PREFIX  = 'vb_sg_index_v1_';
+    private const TRANSIENT_MAIN_PREFIX   = 'vb_sg_main_v1_';
+    private const TRANSIENT_IMAGES_PREFIX = 'vb_sg_images_v1_';
 
     /**
      * Max URLs per sitemap file (protocol limit).
-     * @link https://www.sitemaps.org/protocol.html
      */
     private const MAX_URLS_PER_FILE = 50000;
 
@@ -95,6 +92,9 @@ final class VB_SG_Sitemaps {
 
         // Sharded main sitemaps: sitemap-main-1.xml, sitemap-main-2.xml, ...
         add_rewrite_rule( '^sitemap-main-([0-9]+)\.xml$', 'index.php?' . self::QV_NAME . '=main-$matches[1]', 'top' );
+
+        // Sharded images sitemaps: sitemap-images-1.xml, sitemap-images-2.xml, ...
+        add_rewrite_rule( '^sitemap-images-([0-9]+)\.xml$', 'index.php?' . self::QV_NAME . '=images-$matches[1]', 'top' );
     }
 
     /**
@@ -103,43 +103,49 @@ final class VB_SG_Sitemaps {
      * @return void
      */
     public static function maybe_render(): void {
-		$type = get_query_var( self::QV_NAME );
-		$type = is_string( $type ) ? $type : '';
-	
-		if ( '' === $type ) {
-			return;
-		}
-	
-		nocache_headers();
-		header( 'Content-Type: application/xml; charset=UTF-8' );
-	
-		if ( 'index' === $type ) {
-			echo self::render_index(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is escaped during generation.
-			exit;
-		}
-	
-		if ( 0 === strpos( $type, 'main-' ) ) {
-			$n = (int) substr( $type, 5 );
-			if ( $n < 1 ) {
-				$n = 1;
-			}
-	
-			echo self::render_main_shard( $n ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is escaped during generation.
-			exit;
-		}
-	
-		status_header( 404 );
-		exit;
-	}
+        $type = get_query_var( self::QV_NAME );
+        $type = is_string( $type ) ? $type : '';
+
+        if ( '' === $type ) {
+            return;
+        }
+
+        nocache_headers();
+        header( 'Content-Type: application/xml; charset=UTF-8' );
+
+        if ( 'index' === $type ) {
+            echo self::render_index(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is escaped during generation.
+            exit;
+        }
+
+        if ( 0 === strpos( $type, 'main-' ) ) {
+            $n = (int) substr( $type, 5 );
+            if ( $n < 1 ) {
+                $n = 1;
+            }
+            echo self::render_main_shard( $n ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is escaped during generation.
+            exit;
+        }
+
+        if ( 0 === strpos( $type, 'images-' ) ) {
+            $n = (int) substr( $type, 7 );
+            if ( $n < 1 ) {
+                $n = 1;
+            }
+            echo self::render_images_shard( $n ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is escaped during generation.
+            exit;
+        }
+
+        status_header( 404 );
+        exit;
+    }
 
     /**
-     * Purge all sitemap caches.
+     * Purge all sitemap caches by bumping a cache key.
      *
      * @return void
      */
     public static function purge_all(): void {
-        // We don’t know shard count cheaply without recomputing; purge by versioned prefix is not possible with transients.
-        // So we use a bumping key.
         $bump = (int) get_option( 'vb_sg_cache_bump', 1 );
         update_option( 'vb_sg_cache_bump', $bump + 1, false );
     }
@@ -158,16 +164,24 @@ final class VB_SG_Sitemaps {
             return $cached;
         }
 
-        $count  = self::estimate_total_url_count();
-        $shards = (int) ceil( max( 1, $count ) / self::MAX_URLS_PER_FILE );
-        $shards = max( 1, $shards );
+        $main_count   = self::estimate_total_url_count();
+        $main_shards  = (int) ceil( max( 1, $main_count ) / self::MAX_URLS_PER_FILE );
+        $main_shards  = max( 1, $main_shards );
+
+        // Images shard count: based on total publish posts (safe upper bound).
+        $img_count   = self::estimate_total_posts_count();
+        $img_shards  = (int) ceil( max( 1, $img_count ) / self::MAX_URLS_PER_FILE );
+        $img_shards  = max( 1, $img_shards );
 
         $xml  = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
         $xml .= "<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
 
-        for ( $i = 1; $i <= $shards; $i++ ) {
-            $loc = home_url( '/sitemap-main-' . $i . '.xml' );
-            $xml .= self::sitemap_index_item( $loc );
+        for ( $i = 1; $i <= $main_shards; $i++ ) {
+            $xml .= self::sitemap_index_item( home_url( '/sitemap-main-' . $i . '.xml' ) );
+        }
+
+        for ( $i = 1; $i <= $img_shards; $i++ ) {
+            $xml .= self::sitemap_index_item( home_url( '/sitemap-images-' . $i . '.xml' ) );
         }
 
         $xml .= "</sitemapindex>\n";
@@ -187,7 +201,7 @@ final class VB_SG_Sitemaps {
     }
 
     /**
-     * Render a single main shard.
+     * Render a single main shard (Stage 1 + image entries).
      *
      * @param int $shard Shard number (1-based).
      * @return string
@@ -207,25 +221,40 @@ final class VB_SG_Sitemaps {
         $rows = self::collect_urls_slice( $offset, $limit );
 
         $xml  = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-        $xml .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
+        $xml .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" ";
+        $xml .= "xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\">\n";
 
         foreach ( $rows as $row ) {
-			$loc     = (string) ( $row['loc'] ?? '' );
-			$lastmod = (string) ( $row['lastmod'] ?? '' );
-		
-			if ( '' === $loc ) {
-				continue;
-			}
-		
-			$xml .= "\t<url>\n";
-			$xml .= "\t\t<loc>" . esc_url( $loc ) . "</loc>\n";
-		
-			if ( '' !== $lastmod ) {
-				$xml .= "\t\t<lastmod>" . esc_html( $lastmod ) . "</lastmod>\n";
-			}
-		
-			$xml .= "\t</url>\n";
-		}		
+            $loc     = (string) ( $row['loc'] ?? '' );
+            $lastmod = (string) ( $row['lastmod'] ?? '' );
+            $images  = isset( $row['images'] ) && is_array( $row['images'] ) ? $row['images'] : array();
+
+            if ( '' === $loc ) {
+                continue;
+            }
+
+            $xml .= "\t<url>\n";
+            $xml .= "\t\t<loc>" . esc_url( $loc ) . "</loc>\n";
+
+            if ( '' !== $lastmod ) {
+                $xml .= "\t\t<lastmod>" . esc_html( $lastmod ) . "</lastmod>\n";
+            }
+
+            if ( ! empty( $images ) ) {
+                foreach ( $images as $img_url ) {
+                    $img_url = is_string( $img_url ) ? $img_url : '';
+                    if ( '' === $img_url ) {
+                        continue;
+                    }
+
+                    $xml .= "\t\t<image:image>\n";
+                    $xml .= "\t\t\t<image:loc>" . esc_url( $img_url ) . "</image:loc>\n";
+                    $xml .= "\t\t</image:image>\n";
+                }
+            }
+
+            $xml .= "\t</url>\n";
+        }
 
         $xml .= "</urlset>\n";
 
@@ -234,9 +263,64 @@ final class VB_SG_Sitemaps {
     }
 
     /**
-     * Estimate total URL count for sharding.
+     * Render a single images shard (Stage 2).
      *
-     * This is a fast estimate for index generation (counts publish posts + term counts + archives + home).
+     * Outputs <url> entries only for posts that have at least one image.
+     *
+     * @param int $shard Shard number (1-based).
+     * @return string
+     */
+    private static function render_images_shard( int $shard ): string {
+        $bump  = (int) get_option( 'vb_sg_cache_bump', 1 );
+        $t_key = self::TRANSIENT_IMAGES_PREFIX . $bump . '_' . $shard;
+
+        $cached = get_transient( $t_key );
+        if ( is_string( $cached ) && '' !== $cached ) {
+            return $cached;
+        }
+
+        $offset = ( $shard - 1 ) * self::MAX_URLS_PER_FILE;
+        $limit  = self::MAX_URLS_PER_FILE;
+
+        $rows = self::collect_images_urls_slice( $offset, $limit );
+
+        $xml  = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $xml .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" ";
+        $xml .= "xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\">\n";
+
+        foreach ( $rows as $row ) {
+            $loc    = (string) ( $row['loc'] ?? '' );
+            $images = isset( $row['images'] ) && is_array( $row['images'] ) ? $row['images'] : array();
+
+            if ( '' === $loc || empty( $images ) ) {
+                continue;
+            }
+
+            $xml .= "\t<url>\n";
+            $xml .= "\t\t<loc>" . esc_url( $loc ) . "</loc>\n";
+
+            foreach ( $images as $img_url ) {
+                $img_url = is_string( $img_url ) ? $img_url : '';
+                if ( '' === $img_url ) {
+                    continue;
+                }
+
+                $xml .= "\t\t<image:image>\n";
+                $xml .= "\t\t\t<image:loc>" . esc_url( $img_url ) . "</image:loc>\n";
+                $xml .= "\t\t</image:image>\n";
+            }
+
+            $xml .= "\t</url>\n";
+        }
+
+        $xml .= "</urlset>\n";
+
+        set_transient( $t_key, $xml, self::CACHE_TTL );
+        return $xml;
+    }
+
+    /**
+     * Estimate total URL count for sharding (main index generation).
      *
      * @return int
      */
@@ -282,13 +366,27 @@ final class VB_SG_Sitemaps {
             }
         }
 
-        /**
-         * Filter: adjust estimated total URL count (for custom URLs, etc.).
-         *
-         * @param int $total
-         */
         $total = (int) apply_filters( 'vb_sg_estimated_total_count', $total );
+        return max( 1, $total );
+    }
 
+    /**
+     * Estimate total number of publish posts across included post types (for images sharding).
+     *
+     * @return int
+     */
+    private static function estimate_total_posts_count(): int {
+        $total      = 0;
+        $post_types = self::get_public_content_post_types();
+
+        foreach ( $post_types as $pt ) {
+            $counts = wp_count_posts( $pt );
+            if ( $counts && isset( $counts->publish ) ) {
+                $total += (int) $counts->publish;
+            }
+        }
+
+        $total = (int) apply_filters( 'vb_sg_estimated_total_posts_count', $total );
         return max( 1, $total );
     }
 
@@ -301,9 +399,11 @@ final class VB_SG_Sitemaps {
      * 3) CPT archives
      * 4) Terms per taxonomy, ascending term_id
      *
+     * Stage 2: for post URLs, attach images[].
+     *
      * @param int $offset 0-based offset.
      * @param int $limit  Max items to return.
-     * @return array<int, array{loc:string,lastmod:string}>
+     * @return array<int, array{loc:string,lastmod:string,images?:array<int,string>}>
      */
     private static function collect_urls_slice( int $offset, int $limit ): array {
         $results = array();
@@ -319,7 +419,6 @@ final class VB_SG_Sitemaps {
             } else {
                 $results[] = array(
                     'loc'     => $home,
-                    // Home lastmod: conservative "now" (stage 1 minimal). Can be filtered.
                     'lastmod' => (string) apply_filters( 'vb_sg_home_lastmod', gmdate( 'c' ) ),
                 );
                 $take--;
@@ -394,17 +493,17 @@ final class VB_SG_Sitemaps {
                         }
                     }
 
-                    // noindex: WordPress core does not provide a per-post noindex flag by default.
-                    // So we keep it filter-driven, core-first via your integrations later.
                     if ( true === apply_filters( 'vb_sg_is_noindex_post', false, $post_id ) ) {
                         continue;
                     }
 
                     $lastmod = get_post_modified_time( 'c', true, $post_id ); // GMT ISO8601.
+                    $images  = VB_SG_Images::collect_images_for_post( $post_id );
 
                     $results[] = array(
                         'loc'     => $loc,
                         'lastmod' => is_string( $lastmod ) ? $lastmod : '',
+                        'images'  => $images,
                     );
 
                     $take--;
@@ -455,7 +554,7 @@ final class VB_SG_Sitemaps {
             return $results;
         }
 
-        // 4) Public taxonomies (terms with count > 0), deterministic order by taxonomy name + term_id.
+        // 4) Public taxonomies (terms with count > 0).
         $taxes = get_taxonomies( array( 'public' => true ), 'names' );
         sort( $taxes );
 
@@ -504,7 +603,6 @@ final class VB_SG_Sitemaps {
                     continue;
                 }
 
-                // noindex: filter-driven (core has no simple per-term noindex flag).
                 if ( true === apply_filters( 'vb_sg_is_noindex_term', false, $tax_name, $term_id ) ) {
                     continue;
                 }
@@ -515,6 +613,111 @@ final class VB_SG_Sitemaps {
                 );
 
                 $take--;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Collect a slice for images sitemap.
+     *
+     * Deterministic order:
+     * - Posts/CPTs in ascending ID
+     *
+     * Only returns rows that have at least one image.
+     *
+     * @param int $offset 0-based offset (over POSTS, not over "only those with images").
+     * @param int $limit  Max items to scan/return.
+     * @return array<int, array{loc:string,images:array<int,string>}>
+     */
+    private static function collect_images_urls_slice( int $offset, int $limit ): array {
+        $results = array();
+
+        $skip = max( 0, $offset );
+        $take = max( 1, $limit );
+
+        $post_types = self::get_public_content_post_types();
+
+        foreach ( $post_types as $pt ) {
+            if ( $take <= 0 ) {
+                break;
+            }
+
+            $batch_size = (int) apply_filters( 'vb_sg_posts_batch_size', 2000, $pt );
+            $batch_size = max( 100, min( 5000, $batch_size ) );
+
+            $paged = 1;
+
+            while ( $take > 0 ) {
+                $q = new WP_Query(
+                    array(
+                        'post_type'              => $pt,
+                        'post_status'            => 'publish',
+                        'posts_per_page'         => $batch_size,
+                        'paged'                  => $paged,
+                        'orderby'                => 'ID',
+                        'order'                  => 'ASC',
+                        'fields'                 => 'ids',
+                        'no_found_rows'          => true,
+                        'update_post_term_cache' => false,
+                        'update_post_meta_cache' => false,
+                    )
+                );
+
+                if ( empty( $q->posts ) ) {
+                    break;
+                }
+
+                foreach ( $q->posts as $post_id ) {
+                    if ( $take <= 0 ) {
+                        break 2;
+                    }
+
+                    if ( $skip > 0 ) {
+                        $skip--;
+                        continue;
+                    }
+
+                    $post_id = (int) $post_id;
+
+                    if ( true === apply_filters( 'vb_sg_exclude_post', false, $post_id ) ) {
+                        continue;
+                    }
+
+                    $loc = get_permalink( $post_id );
+                    if ( ! is_string( $loc ) || '' === $loc ) {
+                        continue;
+                    }
+
+                    // Canonical check (core-first).
+                    $canonical = wp_get_canonical_url( $post_id );
+                    if ( is_string( $canonical ) && '' !== $canonical ) {
+                        $a = untrailingslashit( $canonical );
+                        $b = untrailingslashit( $loc );
+                        if ( $a !== $b ) {
+                            continue;
+                        }
+                    }
+
+                    if ( true === apply_filters( 'vb_sg_is_noindex_post', false, $post_id ) ) {
+                        continue;
+                    }
+
+                    $images = VB_SG_Images::collect_images_for_post( $post_id );
+                    if ( empty( $images ) ) {
+                        continue;
+                    }
+
+                    $results[] = array(
+                        'loc'    => $loc,
+                        'images' => $images,
+                    );
+
+                    $take--;
+                }
+
+                $paged++;
             }
         }
 
@@ -535,7 +738,6 @@ final class VB_SG_Sitemaps {
             'names'
         );
 
-        // Known non-content/system post types to exclude.
         $deny = array(
             'attachment',
             'revision',
@@ -558,14 +760,7 @@ final class VB_SG_Sitemaps {
 
         $types = array_values( $post_types );
 
-        /**
-         * Filter: customize which post types are included in sitemaps.
-         *
-         * @param array<int,string> $types
-         */
         $types = (array) apply_filters( 'vb_sg_included_post_types', $types );
-
-        // Normalize to strings, unique.
         $types = array_values( array_unique( array_filter( $types, 'is_string' ) ) );
 
         return $types;

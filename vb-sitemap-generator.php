@@ -22,6 +22,7 @@ define( 'VB_SG_PLUGIN_FILE', __FILE__ );
 define( 'VB_SG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once VB_SG_PLUGIN_DIR . 'includes/class-vb-sg-plugin.php';
+require_once VB_SG_PLUGIN_DIR . 'includes/class-vb-sg-images.php';
 require_once VB_SG_PLUGIN_DIR . 'includes/class-vb-sg-sitemaps.php';
 
 register_activation_hook( __FILE__, array( 'VB_SG_Sitemaps', 'activate' ) );
