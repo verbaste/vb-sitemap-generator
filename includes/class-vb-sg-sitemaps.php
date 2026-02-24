@@ -40,6 +40,7 @@ final class VB_SG_Sitemaps {
     public static function init(): void {
         // Avoid duplicates with WP core sitemaps (/wp-sitemap.xml).
         add_filter( 'wp_sitemaps_enabled', '__return_false' );
+		add_filter( 'robots_txt', array( __CLASS__, 'add_robots_sitemap' ), 10, 2 );
 
         add_action( 'init', array( __CLASS__, 'add_rewrites' ) );
         add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ) );
@@ -765,4 +766,31 @@ final class VB_SG_Sitemaps {
 
         return $types;
     }
+
+	/**
+	 * Append sitemap reference to robots.txt.
+	 *
+	 * @param string $output Existing robots.txt content.
+	 * @param bool   $public Whether site is considered "public".
+	 * @return string
+	 */
+	public static function add_robots_sitemap( string $output, bool $public ): string {
+		// If blog is set to discourage search engines, do not add sitemap.
+		if ( ! $public ) {
+			return $output;
+		}
+
+		$sitemap_url = home_url( '/sitemap.xml' );
+		$line        = 'Sitemap: ' . esc_url_raw( $sitemap_url );
+
+		// Avoid duplication.
+		if ( false !== strpos( $output, $sitemap_url ) ) {
+			return $output;
+		}
+
+		$output = rtrim( $output );
+		$output .= "\n\n" . $line . "\n";
+
+		return $output;
+	}
 }
