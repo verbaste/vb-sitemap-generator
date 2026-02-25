@@ -11,29 +11,43 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Lightweight, standards-compliant XML sitemap generator for WordPress.
 
 == Description ==
-VB Sitemap Generator creates XML sitemaps dynamically (with caching).
+VB Sitemap Generator creates XML sitemaps dynamically with caching and without unnecessary overhead.
 
-Stage-based development:
-* Stage 1: Core URL sitemaps (index + sharded main).
-* Stage 2: Images (image sitemap + image entries in main).
-* Stage 3: Video sitemap.
+Features:
+* Sitemap index: /sitemap.xml
+* Sharded main sitemaps: /sitemap-main-*.xml
+* Image sitemap: /sitemap-images-*.xml
+* Includes images in main sitemap entries
+* Publish-only URLs
+* Respects noindex
+* Uses post_modified_gmt for lastmod
+* Robots.txt integration
+
+The plugin follows modern XML sitemap standards and avoids deprecated elements like changefreq and priority.
 
 == Installation ==
-1. Upload the plugin folder to `/wp-content/plugins/`, or install via WordPress Plugins screen.
+1. Upload the plugin folder to `/wp-content/plugins/`, or install via the WordPress Plugins screen.
 2. Activate the plugin through the 'Plugins' screen in WordPress.
 3. Open `/sitemap.xml` to verify output.
 
 == Frequently Asked Questions ==
+
 = Where is the sitemap? =
 By default: `/sitemap.xml`.
 
 = Does it write files to disk? =
-Not initially. Dynamic output + cache. A static file generation option may be added later.
+No. Sitemaps are generated dynamically and cached. Static file generation may be added in future versions.
 
 == Changelog ==
+
 = 1.0.0 - 2026-02-24 =
-* Stage 1: core sitemaps (/sitemap.xml + sharded /sitemap-main-*.xml).
+* Initial release.
+* Sitemap index (/sitemap.xml)
+* Sharded main sitemap (/sitemap-main-*.xml)
+* Image sitemap support
+* Robots.txt integration
 
 == Upgrade Notice ==
+
 = 1.0.0 =
 Initial release.
