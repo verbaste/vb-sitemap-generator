@@ -165,14 +165,14 @@ final class VB_SG_Sitemaps {
 			return $cached;
 		}
 
-		$main_count   = self::estimate_total_url_count();
-		$main_shards  = (int) ceil( max( 1, $main_count ) / self::MAX_URLS_PER_FILE );
-		$main_shards  = max( 1, $main_shards );
+		$main_count  = self::estimate_total_url_count();
+		$main_shards = (int) ceil( max( 1, $main_count ) / self::MAX_URLS_PER_FILE );
+		$main_shards = max( 1, $main_shards );
 
 		// Images shard count: based on total publish posts (safe upper bound).
-		$img_count   = self::estimate_total_posts_count();
-		$img_shards  = (int) ceil( max( 1, $img_count ) / self::MAX_URLS_PER_FILE );
-		$img_shards  = max( 1, $img_shards );
+		$img_count  = self::estimate_total_posts_count();
+		$img_shards = (int) ceil( max( 1, $img_count ) / self::MAX_URLS_PER_FILE );
+		$img_shards = max( 1, $img_shards );
 
 		$xml  = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 		$xml .= "<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
@@ -484,16 +484,6 @@ final class VB_SG_Sitemaps {
 						continue;
 					}
 
-					// Canonical check (core-first).
-					$canonical = wp_get_canonical_url( $post_id );
-					if ( is_string( $canonical ) && '' !== $canonical ) {
-						$a = untrailingslashit( $canonical );
-						$b = untrailingslashit( $loc );
-						if ( $a !== $b ) {
-							continue;
-						}
-					}
-
 					if ( true === apply_filters( 'vb_sg_is_noindex_post', false, $post_id ) ) {
 						continue;
 					}
@@ -689,16 +679,6 @@ final class VB_SG_Sitemaps {
 					$loc = get_permalink( $post_id );
 					if ( ! is_string( $loc ) || '' === $loc ) {
 						continue;
-					}
-
-					// Canonical check (core-first).
-					$canonical = wp_get_canonical_url( $post_id );
-					if ( is_string( $canonical ) && '' !== $canonical ) {
-						$a = untrailingslashit( $canonical );
-						$b = untrailingslashit( $loc );
-						if ( $a !== $b ) {
-							continue;
-						}
 					}
 
 					if ( true === apply_filters( 'vb_sg_is_noindex_post', false, $post_id ) ) {
