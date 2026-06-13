@@ -23,9 +23,9 @@ final class VB_SG_Sitemaps {
 
 	private const CACHE_TTL = 6 * HOUR_IN_SECONDS;
 
-	private const TRANSIENT_INDEX_PREFIX  = 'vb_sg_index_v1_';
-	private const TRANSIENT_MAIN_PREFIX   = 'vb_sg_main_v1_';
-	private const TRANSIENT_IMAGES_PREFIX = 'vb_sg_images_v1_';
+	private const TRANSIENT_INDEX_PREFIX  = 'vb_sg_index_v102_';
+	private const TRANSIENT_MAIN_PREFIX   = 'vb_sg_main_v102_';
+	private const TRANSIENT_IMAGES_PREFIX = 'vb_sg_images_v102_';
 
 	/**
 	 * Max URLs per sitemap file (protocol limit).
@@ -413,14 +413,17 @@ final class VB_SG_Sitemaps {
 		$take = max( 1, $limit );
 
 		// 1) Home.
-		$home = (string) home_url( '/' );
+		$home          = (string) home_url( '/' );
+		$front_page_id = self::get_front_page_id();
+
 		if ( ! apply_filters( 'vb_sg_exclude_url', false, $home, 'home' ) ) {
 			if ( $skip > 0 ) {
 				$skip--;
 			} else {
 				$results[] = array(
 					'loc'     => $home,
-					'lastmod' => (string) apply_filters( 'vb_sg_home_lastmod', gmdate( 'c' ) ),
+					'lastmod' => (string) apply_filters( 'vb_sg_home_lastmod', self::get_home_lastmod(), $front_page_id ),
+					'images'  => ( $front_page_id > 0 ) ? VB_SG_Images::collect_images_for_post( $front_page_id ) : array(),
 				);
 				$take--;
 			}
@@ -468,12 +471,12 @@ final class VB_SG_Sitemaps {
 						break 2;
 					}
 
-					if ( $skip > 0 ) {
-						$skip--;
+					$post_id = (int) $post_id;
+
+					// The homepage is added explicitly as the first URL. Avoid duplicate static front page entries.
+					if ( self::is_front_page_post( $post_id ) ) {
 						continue;
 					}
-
-					$post_id = (int) $post_id;
 
 					if ( true === apply_filters( 'vb_sg_exclude_post', false, $post_id ) ) {
 						continue;
@@ -485,6 +488,11 @@ final class VB_SG_Sitemaps {
 					}
 
 					if ( true === apply_filters( 'vb_sg_is_noindex_post', false, $post_id ) ) {
+						continue;
+					}
+
+					if ( $skip > 0 ) {
+						$skip--;
 						continue;
 					}
 
@@ -706,15 +714,63 @@ final class VB_SG_Sitemaps {
 	}
 
 	/**
+	 * Get the static front page ID when WordPress is configured to use one.
+	 *
+	 * @return int
+	 */
+	private static function get_front_page_id(): int {
+		if ( 'page' !== (string) get_option( 'show_on_front' ) ) {
+			return 0;
+		}
+
+		$front_page_id = (int) get_option( 'page_on_front' );
+
+		return max( 0, $front_page_id );
+	}
+
+	/**
+	 * Check whether a post ID is the configured static front page.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private static function is_front_page_post( int $post_id ): bool {
+		$front_page_id = self::get_front_page_id();
+
+		return ( $front_page_id > 0 && $front_page_id === $post_id );
+	}
+
+	/**
+	 * Get homepage lastmod based on the static front page when available.
+	 *
+	 * @return string
+	 */
+	private static function get_home_lastmod(): string {
+		$front_page_id = self::get_front_page_id();
+
+		if ( $front_page_id <= 0 ) {
+			return '';
+		}
+
+		$lastmod = get_post_modified_time( 'c', true, $front_page_id );
+
+		return is_string( $lastmod ) ? $lastmod : '';
+	}
+
+	/**
 	 * Get public content post types for sitemaps (deny system types).
 	 *
 	 * @return array<int, string>
 	 */
 	private static function get_public_content_post_types(): array {
+		/*
+		 * Do not require publicly_queryable here.
+		 * Built-in pages and some valid public CPTs can be public, but not publicly queryable.
+		 * Requiring publicly_queryable may leave page-based sites with only the homepage in the sitemap.
+		 */
 		$post_types = get_post_types(
 			array(
-				'public'             => true,
-				'publicly_queryable' => true,
+				'public' => true,
 			),
 			'names'
 		);

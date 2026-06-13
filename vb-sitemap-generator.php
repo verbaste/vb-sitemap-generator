@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       VB Sitemap Generator
- * Description:       Lightweight, standards-compliant XML sitemap generator (dynamic + cache). Core URLs first; images and video added in later stages.
- * Version:           1.0.0
+ * Description:       Lightweight, standards-compliant XML sitemap generator for WordPress (URLs and images, dynamic + cache).
+ * Version:           1.0.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            VerBaste
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'VB_SG_VERSION', '1.0.0' );
+define( 'VB_SG_VERSION', '1.0.2' );
 define( 'VB_SG_PLUGIN_FILE', __FILE__ );
 define( 'VB_SG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 

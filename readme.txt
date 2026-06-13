@@ -4,7 +4,7 @@ Tags: sitemap, xml sitemap, seo
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,6 +17,7 @@ Features:
 * Sitemap index: /sitemap.xml
 * Sharded main sitemaps: /sitemap-main-*.xml
 * Image sitemap: /sitemap-images-*.xml
+* Includes public posts, pages, and public custom post types
 * Includes images in main sitemap entries
 * Publish-only URLs
 * Respects noindex
@@ -40,6 +41,13 @@ No. Sitemaps are generated dynamically and cached. Static file generation may be
 
 == Changelog ==
 
+= 1.0.2 - 2026-06-13 =
+* Fixed public page collection on page-based sites.
+* Removed the overly restrictive publicly_queryable requirement from sitemap post type detection.
+* Prevented duplicate static front page entries in the main sitemap.
+* Added static front page images to the homepage sitemap entry.
+* Updated cache keys to avoid stale sitemap output after upgrade.
+
 = 1.0.0 - 2026-02-24 =
 * Initial release.
 * Sitemap index (/sitemap.xml)
@@ -48,6 +56,9 @@ No. Sitemaps are generated dynamically and cached. Static file generation may be
 * Robots.txt integration
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+Fixes page-based sites where the sitemap could include only the homepage.
 
 = 1.0.0 =
 Initial release.
