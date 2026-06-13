@@ -9,6 +9,9 @@
 - Added static front page images to the homepage sitemap entry.
 - Updated sitemap cache keys to avoid stale output after upgrade.
 
+### Added
+- Added a safe legacy 301 redirect from `/sitemap.xml` to `/vb-sitemap.xml`.
+
 ### Changed
 - Homepage `<lastmod>` now uses the static front page modified date when available instead of a generated current timestamp.
 

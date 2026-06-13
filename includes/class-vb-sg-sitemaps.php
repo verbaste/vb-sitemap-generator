@@ -43,7 +43,7 @@ final class VB_SG_Sitemaps {
 		add_filter( 'robots_txt', array( __CLASS__, 'add_robots_sitemap' ), 10, 2 );
 
 		add_action( 'init', array( __CLASS__, 'add_rewrites' ) );
-		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 0 );
 
 		// Purge caches on content/taxonomy changes.
 		add_action( 'save_post', array( __CLASS__, 'purge_all' ), 20 );
@@ -104,6 +104,8 @@ final class VB_SG_Sitemaps {
 	 * @return void
 	 */
 	public static function maybe_render(): void {
+		self::maybe_redirect_legacy_index();
+
 		$type = get_query_var( self::QV_NAME );
 		$type = is_string( $type ) ? $type : '';
 
@@ -138,6 +140,51 @@ final class VB_SG_Sitemaps {
 		}
 
 		status_header( 404 );
+		exit;
+	}
+
+	/**
+	 * Redirect the legacy sitemap index URL to the plugin namespaced sitemap.
+	 *
+	 * Keeps only one canonical sitemap index while avoiding WordPress core
+	 * fallback redirects to wp-sitemap.xml.
+	 *
+	 * @return void
+	 */
+	private static function maybe_redirect_legacy_index(): void {
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+
+		if ( '' === $request_uri ) {
+			return;
+		}
+
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+
+		if ( ! in_array( $request_method, array( 'GET', 'HEAD' ), true ) ) {
+			return;
+		}
+
+		$request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+
+		if ( ! is_string( $request_path ) || '' === $request_path ) {
+			return;
+		}
+
+		$home_path = wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		$home_path = is_string( $home_path ) ? $home_path : '/';
+		$home_path = '/' . trim( $home_path, '/' ) . '/';
+
+		if ( '//' === $home_path ) {
+			$home_path = '/';
+		}
+
+		$legacy_path = trailingslashit( $home_path ) . 'sitemap.xml';
+
+		if ( untrailingslashit( $request_path ) !== untrailingslashit( $legacy_path ) ) {
+			return;
+		}
+
+		wp_safe_redirect( home_url( '/vb-sitemap.xml' ), 301 );
 		exit;
 	}
 
