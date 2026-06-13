@@ -29,7 +29,7 @@ The plugin follows modern XML sitemap standards and avoids deprecated elements l
 == Installation ==
 1. Upload the plugin folder to `/wp-content/plugins/`, or install via the WordPress Plugins screen.
 2. Activate the plugin through the 'Plugins' screen in WordPress.
-3. Open `/sitemap.xml` to verify output.
+3. Open `/vb-sitemap.xml` to verify output.
 
 == Frequently Asked Questions ==
 
