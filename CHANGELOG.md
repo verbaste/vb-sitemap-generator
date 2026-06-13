@@ -13,14 +13,18 @@
 - Added a safe legacy 301 redirect from `/sitemap.xml` to `/vb-sitemap.xml`.
 
 ### Changed
+- Renamed sitemap endpoints to avoid conflicts with existing sitemap files and other sitemap generators:
+  - `/sitemap.xml` → `/vb-sitemap.xml`
+  - `/sitemap-main-*.xml` → `/vb-sitemap-main-*.xml`
+  - `/sitemap-images-*.xml` → `/vb-sitemap-images-*.xml`
 - Homepage `<lastmod>` now uses the static front page modified date when available instead of a generated current timestamp.
 
 ## 1.0.0 - 2026-02-24
 
 ### Added
-- Sitemap index (`/vb-sitemap.xml`)
-- Sharded main sitemaps (`/vb-sitemap-main-*.xml`)
-- Image sitemaps (`/vb-sitemap-images-*.xml`)
+- Sitemap index (`/sitemap.xml`)
+- Sharded main sitemaps (`/sitemap-main-*.xml`)
+- Image sitemaps (`/sitemap-images-*.xml`)
 - Image entries inside main sitemap
 - Automatic robots.txt integration
 - Publish-only URL inclusion

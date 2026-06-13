@@ -47,11 +47,13 @@ No. Sitemaps are generated dynamically and cached. Static file generation may be
 * Prevented duplicate static front page entries in the main sitemap.
 * Added static front page images to the homepage sitemap entry.
 * Updated cache keys to avoid stale sitemap output after upgrade.
+* Sitemap index (/vb-sitemap.xml)
+* Sharded main sitemap (/vb-sitemap-main-*.xml)
 
 = 1.0.0 - 2026-02-24 =
 * Initial release.
-* Sitemap index (/vb-sitemap.xml)
-* Sharded main sitemap (/vb-sitemap-main-*.xml)
+* Sitemap index (/sitemap.xml)
+* Sharded main sitemap (/sitemap-main-*.xml)
 * Image sitemap support
 * Robots.txt integration
 
