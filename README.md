@@ -4,9 +4,9 @@ Lightweight, standards-compliant XML sitemap generator for WordPress (dynamic ge
 
 ## Features
 
-- `/sitemap.xml` — sitemap index
-- `/sitemap-main-1.xml`, `/sitemap-main-2.xml`, ... — sharded URL sitemaps
-- `/sitemap-images-1.xml`, `/sitemap-images-2.xml`, ... — image sitemaps
+- `/vb-sitemap.xml` — sitemap index
+- `/vb-sitemap-main-1.xml`, `/sitemap-main-2.xml`, ... — sharded URL sitemaps
+- `/vb-sitemap-images-1.xml`, `/sitemap-images-2.xml`, ... — image sitemaps
 - Includes public posts, pages, and public custom post types
 - Images included in main sitemap entries
 - Static front page handled as the homepage entry to avoid duplicate URLs

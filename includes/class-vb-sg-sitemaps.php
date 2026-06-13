@@ -3,9 +3,9 @@
  * Core sitemap routing and rendering (Stage 1 + Stage 2 Images).
  *
  * Provides:
- * - /sitemap.xml                (index)
- * - /sitemap-main-1.xml ...     (sharded main sitemap)
- * - /sitemap-images-1.xml ...   (sharded images sitemap)
+ * - /vb-sitemap.xml                (index)
+ * - /vb-sitemap-main-1.xml ...     (sharded main sitemap)
+ * - /vb-sitemap-images-1.xml ...   (sharded images sitemap)
  *
  * @package    VB_Sitemap_Generator
  * @since      1.0.0
@@ -89,13 +89,13 @@ final class VB_SG_Sitemaps {
 	public static function add_rewrites(): void {
 		add_rewrite_tag( '%' . self::QV_NAME . '%', '([^&]+)' );
 
-		add_rewrite_rule( '^sitemap\.xml$', 'index.php?' . self::QV_NAME . '=index', 'top' );
+		add_rewrite_rule( '^vb-sitemap\.xml$', 'index.php?' . self::QV_NAME . '=index', 'top' );
 
 		// Sharded main sitemaps: sitemap-main-1.xml, sitemap-main-2.xml, ...
-		add_rewrite_rule( '^sitemap-main-([0-9]+)\.xml$', 'index.php?' . self::QV_NAME . '=main-$matches[1]', 'top' );
+		add_rewrite_rule( '^vb-sitemap-main-([0-9]+)\.xml$', 'index.php?' . self::QV_NAME . '=main-$matches[1]', 'top' );
 
 		// Sharded images sitemaps: sitemap-images-1.xml, sitemap-images-2.xml, ...
-		add_rewrite_rule( '^sitemap-images-([0-9]+)\.xml$', 'index.php?' . self::QV_NAME . '=images-$matches[1]', 'top' );
+		add_rewrite_rule( '^vb-sitemap-images-([0-9]+)\.xml$', 'index.php?' . self::QV_NAME . '=images-$matches[1]', 'top' );
 	}
 
 	/**
@@ -178,11 +178,11 @@ final class VB_SG_Sitemaps {
 		$xml .= "<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
 
 		for ( $i = 1; $i <= $main_shards; $i++ ) {
-			$xml .= self::sitemap_index_item( home_url( '/sitemap-main-' . $i . '.xml' ) );
+			$xml .= self::sitemap_index_item( home_url( '/vb-sitemap-main-' . $i . '.xml' ) );
 		}
 
 		for ( $i = 1; $i <= $img_shards; $i++ ) {
-			$xml .= self::sitemap_index_item( home_url( '/sitemap-images-' . $i . '.xml' ) );
+			$xml .= self::sitemap_index_item( home_url( '/vb-sitemap-images-' . $i . '.xml' ) );
 		}
 
 		$xml .= "</sitemapindex>\n";
@@ -816,7 +816,7 @@ final class VB_SG_Sitemaps {
 			return $output;
 		}
 
-		$sitemap_url = home_url( '/sitemap.xml' );
+		$sitemap_url = home_url( '/vb-sitemap.xml' );
 		$line        = 'Sitemap: ' . esc_url_raw( $sitemap_url );
 
 		// Avoid duplication.

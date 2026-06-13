@@ -14,9 +14,9 @@ Lightweight, standards-compliant XML sitemap generator for WordPress.
 VB Sitemap Generator creates XML sitemaps dynamically with caching and without unnecessary overhead.
 
 Features:
-* Sitemap index: /sitemap.xml
-* Sharded main sitemaps: /sitemap-main-*.xml
-* Image sitemap: /sitemap-images-*.xml
+* Sitemap index: /vb-sitemap.xml
+* Sharded main sitemaps: /vb-sitemap-main-*.xml
+* Image sitemap: /vb-sitemap-images-*.xml
 * Includes public posts, pages, and public custom post types
 * Includes images in main sitemap entries
 * Publish-only URLs
@@ -34,7 +34,7 @@ The plugin follows modern XML sitemap standards and avoids deprecated elements l
 == Frequently Asked Questions ==
 
 = Where is the sitemap? =
-By default: `/sitemap.xml`.
+By default: `/vb-sitemap.xml`.
 
 = Does it write files to disk? =
 No. Sitemaps are generated dynamically and cached. Static file generation may be added in future versions.
@@ -50,8 +50,8 @@ No. Sitemaps are generated dynamically and cached. Static file generation may be
 
 = 1.0.0 - 2026-02-24 =
 * Initial release.
-* Sitemap index (/sitemap.xml)
-* Sharded main sitemap (/sitemap-main-*.xml)
+* Sitemap index (/vb-sitemap.xml)
+* Sharded main sitemap (/vb-sitemap-main-*.xml)
 * Image sitemap support
 * Robots.txt integration
 

@@ -15,9 +15,9 @@
 ## 1.0.0 - 2026-02-24
 
 ### Added
-- Sitemap index (`/sitemap.xml`)
-- Sharded main sitemaps (`/sitemap-main-*.xml`)
-- Image sitemaps (`/sitemap-images-*.xml`)
+- Sitemap index (`/vb-sitemap.xml`)
+- Sharded main sitemaps (`/vb-sitemap-main-*.xml`)
+- Image sitemaps (`/vb-sitemap-images-*.xml`)
 - Image entries inside main sitemap
 - Automatic robots.txt integration
 - Publish-only URL inclusion
